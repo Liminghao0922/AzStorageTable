@@ -1,50 +1,42 @@
 # AzureRmStorageTable
 Repository for a sample module to manipulate Azure Storage Table rows/entities.
 
-For more information, please visit the following blog post:
-https://blogs.technet.microsoft.com/paulomarques/2017/01/17/working-with-azure-storage-tables-from-powershell/
+This is rebased from https://blogs.technet.microsoft.com/paulomarques/2017/01/17/working-with-azure-storage-tables-from-powershell/
 
 This module supports *Azure Storage Tables*. Cosmos DB support was removed.
-
-For PowerShell Core version of this module, please refer to a great community contribution by JakeDenyer below:
-https://github.com/jakedenyer/AzStorageTable
 
 
 ## Quick Setup
 1. In a Windows 10/2016 execute the following cmdlets in order to install required modules
     ```powershell
-    Install-Module AzureRm.Storage -AllowClobber -Force
-    Install-Module AzureRM.Profile  -AllowClobber -Force
-    Install-Module AzureRM.Resources -AllowClobber -Force   
+    Install-Module Az.Storage -AllowClobber -Force
+    Install-Module Az.Profile  -AllowClobber -Force
+    Install-Module Az.Resources -AllowClobber -Force   
     Install-Module Azure.Storage -AllowClobber -Force
     ```
     
-1. Install AzureRmStorageTable
+1. Install Az.StorageTable
     ```powershell
-    Install-Module AzureRmStorageTable
+    Install-Module Az.StorageTable
     ```
 
 Below you will get the help content of every function that is exposed through the AzureRmStorageTable module.
 
-# Get-AzureStorageTableTable
+# Get-AzStorageTableTable
 
 ## SYNOPSIS
-Gets a Table object, it can be from Azure Storage Table or Cosmos DB in preview support.
+Gets a Table object, it can be from Azure Storage Accont or classic Storage Table.
 
 ## SYNTAX
 
 ### AzureTableStorage
 ```
-Get-AzureStorageTableTable -resourceGroup <String> -tableName <String> -storageAccountName <String>
+Get-AzStorageTableTable -resourceGroup <String> -tableName <String> -storageAccountName <String>
 ```
 
-### AzureCosmosDb
-```
-Get-AzureStorageTableTable -resourceGroup <String> -tableName <String> -databaseName <String>
-```
 
 ## DESCRIPTION
-Gets a Table object, it can be from Azure Storage Table or Cosmos DB in preview support.
+Gets a Table object, it can be from Azure Storage Table or classic Storage Table.
 
 ## EXAMPLES
 
@@ -54,22 +46,22 @@ Gets a Table object, it can be from Azure Storage Table or Cosmos DB in preview 
 $resourceGroup = "myResourceGroup"
 $storageAccount = "myStorageAccountName"
 $tableName = "table01"
-$table = Get-AzureStorageTabletable -resourceGroup $resourceGroup -tableName $tableName -storageAccountName $storageAccount
+$table = Get-AzStorageTabletable -resourceGroup $resourceGroup -tableName $tableName -storageAccountName $storageAccount
 ```
 
 ### -------------------------- EXAMPLE 2 --------------------------
 ```
-# Getting Cosmos DB table object
+# Getting classic storage table object
 $resourceGroup = "myResourceGroup"
 $databaseName = "myCosmosDbName"
 $tableName = "table01"
-$table01 = Get-AzureStorageTabletable -resourceGroup $resourceGroup -tableName $tableName -databaseName $databaseName
+$table01 = Get-AzStorageTabletable -resourceGroup $resourceGroup -tableName $tableName -databaseName $databaseName
 ```
 
 ## PARAMETERS
 
 ### -resourceGroup
-Resource Group where the Azure Storage Account or Cosmos DB are located
+Resource Group where the Azure Storage Account are located
 
 ```yaml
 Type: String
@@ -103,7 +95,7 @@ Storage Account name where the table lives
 
 ```yaml
 Type: String
-Parameter Sets: AzureTableStorage
+Parameter Sets: AzTableStorage
 Aliases: 
 
 Required: True
@@ -113,22 +105,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -databaseName
-CosmosDB database where the table lives
-
-```yaml
-Type: String
-Parameter Sets: AzureCosmosDb
-Aliases: 
-
-Required: True
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-# Add-StorageTableRow
+# Add-AzStorageTableRow
 
 ## SYNOPSIS
 Adds a row/entity to a specified table
@@ -136,7 +113,7 @@ Adds a row/entity to a specified table
 ## SYNTAX
 
 ```
-Add-StorageTableRow [-table] <AzureStorageTable> [-partitionKey] <String> [-rowKey] <String>
+Add-AzStorageTableRow [-table] <AzureStorageTable> [-partitionKey] <String> [-rowKey] <String>
  [-property] <Hashtable>
 ```
 
@@ -148,9 +125,9 @@ Adds a row/entity to a specified table
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Adding a row
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext
-Add-StorageTableRow -table $table -partitionKey $partitionKey -rowKey (\[guid\]::NewGuid().tostring()) -property @{"firstName"="Paulo";"lastName"="Costa";"role"="presenter"}
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext
+Add-AzStorageTableRow -table $table -partitionKey $partitionKey -rowKey (\[guid\]::NewGuid().tostring()) -property @{"firstName"="Paulo";"lastName"="Costa";"role"="presenter"}
 ```
 
 ## PARAMETERS
@@ -217,7 +194,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-# Get-AzureStorageTableRowAll
+# Get-AzStorageTableRowAll
 
 ## SYNOPSIS
 Returns all rows/entities from a storage table - no filtering
@@ -225,7 +202,7 @@ Returns all rows/entities from a storage table - no filtering
 ## SYNTAX
 
 ```
-Get-AzureStorageTableRowAll [-table] <AzureStorageTable>
+Get-AzStorageTableRowAll [-table] <AzureStorageTable>
 ```
 
 ## DESCRIPTION
@@ -236,9 +213,9 @@ Returns all rows/entities from a storage table - no filtering
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Getting all rows
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext
-Get-AzureStorageTableRowAll -table $table
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext
+Get-AzStorageTableRowAll -table $table
 ```
 
 ## PARAMETERS
@@ -258,7 +235,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-# Get-AzureStorageTableRowByColumnName
+# Get-AzStorageTableRowByColumnName
 
 ## SYNOPSIS
 Returns one or more rows/entities based on a specified column and its value
@@ -266,7 +243,7 @@ Returns one or more rows/entities based on a specified column and its value
 ## SYNTAX
 
 ```
-Get-AzureStorageTableRowByColumnName [-table] <AzureStorageTable> [-columnName] <String> [-value] <String>
+Get-AzStorageTableRowByColumnName [-table] <AzureStorageTable> [-columnName] <String> [-value] <String>
  [-operator] <String>
 ```
 
@@ -278,9 +255,9 @@ Returns one or more rows/entities based on a specified column and its value
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Getting row by firstname
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext
-Get-AzureStorageTableRowByColumnName -table $table -columnName "firstName" -value "Paulo" -operator Equal
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext
+Get-AzStorageTableRowByColumnName -table $table -columnName "firstName" -value "Paulo" -operator Equal
 ```
 
 ## PARAMETERS
@@ -346,7 +323,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-# Get-AzureStorageTableRowByCustomFilter
+# Get-AzStorageTableRowByCustomFilter
 
 ## SYNOPSIS
 Returns one or more rows/entities based on custom filter.
@@ -354,7 +331,7 @@ Returns one or more rows/entities based on custom filter.
 ## SYNTAX
 
 ```
-Get-AzureStorageTableRowByCustomFilter [-table] <AzureStorageTable> [-customFilter] <String>
+Get-AzStorageTableRowByCustomFilter [-table] <AzureStorageTable> [-customFilter] <String>
 ```
 
 ## DESCRIPTION
@@ -367,17 +344,17 @@ built using the Microsoft.WindowsAzure.Storage.Table.TableQuery class or direct 
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Getting row by firstname by using the class Microsoft.WindowsAzure.Storage.Table.TableQuery
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext
-Get-AzureStorageTableRowByCustomFilter -table $table -customFilter $finalFilter
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext
+Get-AzStorageTableRowByCustomFilter -table $table -customFilter $finalFilter
 ```
 
 ### -------------------------- EXAMPLE 2 --------------------------
 ```
 # Getting row by firstname by using text filter directly (oData filter format)
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext
-Get-AzureStorageTableRowByCustomFilter -table $table -customFilter "(firstName eq 'User1') and (lastName eq 'LastName1')"
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext
+Get-AzStorageTableRowByCustomFilter -table $table -customFilter "(firstName eq 'User1') and (lastName eq 'LastName1')"
 ```
 
 ## PARAMETERS
@@ -468,25 +445,25 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-# Remove-AzureStorageTableRow
+# Remove-AzStorageTableRow
 
 ## SYNOPSIS
-Remove-AzureStorageTableRow - Removes a specified table row
+Remove-AzStorageTableRow - Removes a specified table row
 
 ## SYNTAX
 
 ### byEntityPSObjectObject
 ```
-Remove-AzureStorageTableRow -table <AzureStorageTable> -entity <Object>
+Remove-AzStorageTableRow -table <AzureStorageTable> -entity <Object>
 ```
 
 ### byPartitionandRowKeys
 ```
-Remove-AzureStorageTableRow -table <AzureStorageTable> -partitionKey <String> -rowKey <String>
+Remove-AzStorageTableRow -table <AzureStorageTable> -partitionKey <String> -rowKey <String>
 ```
 
 ## DESCRIPTION
-Remove-AzureStorageTableRow - Removes a specified table row.
+Remove-AzStorageTableRow - Removes a specified table row.
 It accepts multiple deletions through the Pipeline when passing entities returned from the Get-AzureStorageTableRow
 available cmdlets.
 It also can delete a row/entity using Partition and Row Key properties directly.
@@ -496,29 +473,29 @@ It also can delete a row/entity using Partition and Row Key properties directly.
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Deleting an entry by entity PS Object
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext	
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext	
 \[string\]$filter1 = \[Microsoft.WindowsAzure.Storage.Table.TableQuery\]::GenerateFilterCondition("firstName",\[Microsoft.WindowsAzure.Storage.Table.QueryComparisons\]::Equal,"Paulo")
 \[string\]$filter2 = \[Microsoft.WindowsAzure.Storage.Table.TableQuery\]::GenerateFilterCondition("lastName",\[Microsoft.WindowsAzure.Storage.Table.QueryComparisons\]::Equal,"Marques")
 \[string\]$finalFilter = \[Microsoft.WindowsAzure.Storage.Table.TableQuery\]::CombineFilters($filter1,"and",$filter2)
-$personToDelete = Get-AzureStorageTableRowByCustomFilter -table $table -customFilter $finalFilter
-$personToDelete | Remove-AzureStorageTableRow -table $table
+$personToDelete = Get-AzStorageTableRowByCustomFilter -table $table -customFilter $finalFilter
+$personToDelete | Remove-AzStorageTableRow -table $table
 ```
 
 ### -------------------------- EXAMPLE 2 --------------------------
 ```
 # Deleting an entry by using partitionkey and row key directly
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext	
-Remove-AzureStorageTableRow -table $table -partitionKey "TableEntityDemoFullList" -rowKey "399b58af-4f26-48b4-9b40-e28a8b03e867"
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext	
+Remove-AzStorageTableRow -table $table -partitionKey "TableEntityDemoFullList" -rowKey "399b58af-4f26-48b4-9b40-e28a8b03e867"
 ```
 
 ### -------------------------- EXAMPLE 3 --------------------------
 ```
 # Deleting everything
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext	
-Get-AzureStorageTableRowAll -table $table | Remove-AzureStorageTableRow -table $table
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext	
+Get-AzStorageTableRowAll -table $table | Remove-AzStorageTableRow -table $table
 ```
 
 ## PARAMETERS
@@ -583,7 +560,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-# Update-AzureStorageTableRow
+# Update-AzStorageTableRow
 
 ## SYNOPSIS
 Updates a table entity
@@ -591,7 +568,7 @@ Updates a table entity
 ## SYNTAX
 
 ```
-Update-AzureStorageTableRow [-table] <AzureStorageTable> [-entity] <Object>
+Update-AzStorageTableRow [-table] <AzureStorageTable> [-entity] <Object>
 ```
 
 ## DESCRIPTION
@@ -605,12 +582,12 @@ Notice that this cmdlet accepts only one entity per execution.
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
 # Updating an entity
-$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
-$table = Get-AzureStorageTable -Name $tableName -Context $saContext	
+$saContext = (Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccount).Context
+$table = Get-AzStorageTable -Name $tableName -Context $saContext	
 \[string\]$filter = \[Microsoft.WindowsAzure.Storage.Table.TableQuery\]::GenerateFilterCondition("firstName",\[Microsoft.WindowsAzure.Storage.Table.QueryComparisons\]::Equal,"User1")
-$person = Get-AzureStorageTableRowByCustomFilter -table $table -customFilter $filter
+$person = Get-AzStorageTableRowByCustomFilter -table $table -customFilter $filter
 $person.lastName = "New Last Name"
-$person | Update-AzureStorageTableRow -table $table
+$person | Update-AzStorageTableRow -table $table
 ```
 
 ## PARAMETERS

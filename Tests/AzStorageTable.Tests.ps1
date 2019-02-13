@@ -1,19 +1,17 @@
-Import-Module .\AzureRmStorageTable.psd1 -Force
+Import-Module .\AzStorageTable.psd1 -Force
 
-$choices = [System.Management.Automation.Host.ChoiceDescription[]] @("&Y","&N")
+$choices = [System.Management.Automation.Host.ChoiceDescription[]] @("&Y", "&N")
 $useEmulator = $Host.UI.PromptForChoice("Use local Azure Storage Emulator?", "", $choices, 0)
 $useEmulator = $useEmulator -eq 0
 
 $uniqueString = Get-Date -UFormat "PsTest%Y%m%dT%H%M%S"
 
-Describe "AzureRmStorageTable" {
+Describe "AzStorageTable" {
     BeforeAll {
-        if ($useEmulator)
-        {
-            $context = New-AzureStorageContext -Local
+        if ($useEmulator) {
+            $context = New-AzStorageContext -Local
         }
-        else
-        {
+        else {
             $subscriptionName = Read-Host "Enter Azure Subscription name"                
             $locationName = Read-Host "Enter Azure Location name"
 
@@ -31,7 +29,7 @@ Describe "AzureRmStorageTable" {
             # $context = $storage.Context
 
             Write-Host -for DarkGreen "Creating Cosmos DB account $([string]::Format("cdb{0}",$uniqueString).ToLower())"
-            $comosDbuniqueString = [string]::Format("cdb{0}",$uniqueString).ToLower()
+            $comosDbuniqueString = [string]::Format("cdb{0}", $uniqueString).ToLower()
             # $locations = @(@{"locationName"=$locationName; "failoverPriority"=0})
             # $CosmosDBProperties = @{"databaseAccountOfferType"="Standard"; "locations"=$locations}
             # New-AzureRmResource -ResourceType "Microsoft.DocumentDb/databaseAccounts" -ApiVersion  -ResourceGroupName $uniqueString -location $locationName -Name $comosDbuniqueString -PropertyObject $CosmosDBProperties -Force
@@ -47,19 +45,18 @@ Describe "AzureRmStorageTable" {
             Write-Host -for DarkGreen "Loading Cosmos Db assemblies"
 
             $requiredDlls = @("Microsoft.WindowsAzure.Storage.dll",
-                    "Microsoft.Data.Services.Client.dll",
-                    "Microsoft.Azure.Documents.Client.dll",
-                    "Newtonsoft.Json.dll",
-                    "Microsoft.Data.Edm.dll",
-                    "Microsoft.Data.OData.dll",
-                    "Microsoft.OData.Core.dll",
-                    "Microsoft.OData.Edm.dll",
-                    "Microsoft.Spatial.dll",
-                    "Microsoft.Azure.KeyVault.Core.dll",
-                    "System.Spatial.dll")
+                "Microsoft.Data.Services.Client.dll",
+                "Microsoft.Azure.Documents.Client.dll",
+                "Newtonsoft.Json.dll",
+                "Microsoft.Data.Edm.dll",
+                "Microsoft.Data.OData.dll",
+                "Microsoft.OData.Core.dll",
+                "Microsoft.OData.Edm.dll",
+                "Microsoft.Spatial.dll",
+                "Microsoft.Azure.KeyVault.Core.dll",
+                "System.Spatial.dll")
 
-            foreach ($dll in $requiredDlls)
-            {
+            foreach ($dll in $requiredDlls) {
                 [System.Reflection.Assembly]::LoadFile((Join-Path $PSScriptRoot $dll)) | Out-Null
             }
 
@@ -277,15 +274,12 @@ Describe "AzureRmStorageTable" {
     AfterAll { 
         Write-Host -for DarkGreen "Cleanup in process"
 
-        if ($useEmulator)
-        {
-            foreach ($tableName in $tableNames)
-            {
+        if ($useEmulator) {
+            foreach ($tableName in $tableNames) {
                 Remove-AzureStorageTable -Context $context -Name $tableName -Force
             }
         }
-        else
-        {
+        else {
             Remove-AzureRmResourceGroup -Name $uniqueString -Force
         }
 
