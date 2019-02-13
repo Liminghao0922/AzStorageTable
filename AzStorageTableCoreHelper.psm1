@@ -580,8 +580,9 @@ function Remove-AzStorageTableRow {
             $partitionKey = $entity.PartitionKey
             $rowKey = $entity.RowKey
         }
+        
 
-        $entityToDelete = invoke-expression "[Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity,$assemblySN](`$table.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Retrieve(`$partitionKey,`$rowKey))).Result"
+        $entityToDelete = invoke-expression "[Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity,$assemblySN](`$table.CloudTable.ExecuteAsync([Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Retrieve(`$partitionKey,`$rowKey))).GetAwaiter().GetResult().Result"
    
         if ($null -ne $entityToDelete ) {
             $results += $table.CloudTable.ExecuteAsync((invoke-expression "[Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Delete(`$entityToDelete)")).GetAwaiter().GetResult()
