@@ -9,10 +9,8 @@ This module supports *Azure Storage Tables*. Cosmos DB support was removed.
 ## Quick Setup
 1. In a Windows 10/2016 execute the following cmdlets in order to install required modules
     ```powershell
-    Install-Module Az.Storage -AllowClobber -Force
-    Install-Module Az.Profile  -AllowClobber -Force
-    Install-Module Az.Resources -AllowClobber -Force   
     Install-Module Azure.Storage -AllowClobber -Force
+    Install-Module Az.Storage -AllowClobber -Force
     ```
     
 1. Install Az.StorageTable

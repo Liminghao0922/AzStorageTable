@@ -19,7 +19,7 @@
     HelpInfoUri            = 'https://blogs.technet.microsoft.com/paulomarques/2017/01/17/working-with-azure-storage-tables-from-powershell/'
 	
     # Version number of this module
-    ModuleVersion          = '1.0.0'
+    ModuleVersion          = '1.0.1'
 
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion      = '5.1'

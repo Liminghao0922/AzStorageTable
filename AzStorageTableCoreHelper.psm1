@@ -13,7 +13,7 @@
 	
 #>
 
-#Requires -Modules Az.Storage, Az.Profile, Az.Resources, Azure.Storage
+#Requires -Modules Az.Storage, Azure.Storage
 
 # Module Functions
 
@@ -40,8 +40,9 @@ function GetLatestFullAssemblyName {
 
 # Getting latest Microsoft.WindowsAzure.Storage.dll full Assembly name 
 $assemblySN = (GetLatestFullAssemblyName -dllName "Microsoft.WindowsAzure.Storage.dll").fullname
-$cloudTableType = [Microsoft.WindowsAzure.Storage.Table.CloudTable]
-$executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@( [Microsoft.WindowsAzure.Storage.Table.TableQuery]), $null)
+$cloudTableType = [System.Type]::GetType("Microsoft.WindowsAzure.Storage.Table.CloudTable, $assemblySN")
+$tableQueryType = [System.Type]::GetType("Microsoft.WindowsAzure.Storage.Table.TableQuery, $assemblySN")
+$executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@( $tableQueryType), $null)
 function Test-AzureStorageTableEmptyKeys {
     [CmdletBinding()]
     param
