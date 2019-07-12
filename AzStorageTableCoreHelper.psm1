@@ -13,7 +13,7 @@
 	
 #>
 
-#Requires -Modules Az.Storage, Azure.Storage
+#Requires -Modules Az.Storage
 
 # Module Functions
 
@@ -24,7 +24,7 @@ function GetLatestFullAssemblyName {
     )
 
     # getting list of all assemblies
-    $assemblies = [appdomain]::currentdomain.getassemblies() | Where-Object {$_.location -like "*$dllName"}	
+    $assemblies = [appdomain]::currentdomain.getassemblies() | Where-Object { $_.location -like "*$dllName" }	
     if ($null -eq $assemblies) {
         throw "Could not identify any assembly related to DLL named $dllName"
     }
@@ -32,17 +32,12 @@ function GetLatestFullAssemblyName {
     $sanitazedAssemblyList = @()
     foreach ($assembly in $assemblies) {
         [version]$version = $assembly.fullname.split(",")[1].split("=")[1]
-        $sanitazedAssemblyList += New-Object -TypeName psobject -Property @{"version" = $version; "fullName" = $assembly.fullname}
+        $sanitazedAssemblyList += New-Object -TypeName psobject -Property @{"version" = $version; "fullName" = $assembly.fullname }
     }
 
     return ($sanitazedAssemblyList | Sort-Object version -Descending)[0]
 }
 
-# Getting latest Microsoft.WindowsAzure.Storage.dll full Assembly name 
-$assemblySN = (GetLatestFullAssemblyName -dllName "Microsoft.WindowsAzure.Storage.dll").fullname
-$cloudTableType = [System.Type]::GetType("Microsoft.WindowsAzure.Storage.Table.CloudTable, $assemblySN")
-$tableQueryType = [System.Type]::GetType("Microsoft.WindowsAzure.Storage.Table.TableQuery, $assemblySN")
-$executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@( $tableQueryType), $null)
 function Test-AzureStorageTableEmptyKeys {
     [CmdletBinding()]
     param
@@ -160,9 +155,12 @@ function Add-AzStorageTableRow {
         [hashtable]$property,
         [Switch]$UpdateExisting
     )
-	
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $dynamicTableEntityType = [System.Type]::GetType("$($cloudTableType.Namespace).DynamicTableEntity, $($cloudTableType.Assembly.FullName)")
+    $tableOperationType = [System.Type]::GetType("$($cloudTableType.Namespace).TableOperation, $($cloudTableType.Assembly.FullName)")
     # Creates the table entity with mandatory partitionKey and rowKey arguments
-    $entity = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity,$assemblySN" -ArgumentList $partitionKey, $rowKey
+    $entity = New-Object $dynamicTableEntityType  -ArgumentList $partitionKey, $rowKey  
     
     # Adding the additional columns to the table entity
     foreach ($prop in $property.Keys) {
@@ -172,10 +170,10 @@ function Add-AzStorageTableRow {
     }
 	
     if ($UpdateExisting) {
-        return ($table.CloudTable.ExecuteAsync((invoke-expression "[Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::insertorreplace(`$entity)")).GetAwaiter().GetResult())
+        return ($table.CloudTable.ExecuteAsync((invoke-expression "[$($tableOperationType.AssemblyQualifiedName)]::insertorreplace(`$entity)")).GetAwaiter().GetResult())
     }
     else {
-        return ($table.CloudTable.ExecuteAsync((invoke-expression "[Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::insert(`$entity)")).GetAwaiter().GetResult())
+        return ($table.CloudTable.ExecuteAsync((invoke-expression "[$($tableOperationType.AssemblyQualifiedName)]::insert(`$entity)")).GetAwaiter().GetResult())
     }
  
 }
@@ -193,7 +191,7 @@ function Get-PSObjectFromEntity {
     if (-not [string]::IsNullOrEmpty($entityList)) {
         foreach ($entity in $entityList) {
             $entityNewObj = New-Object -TypeName psobject
-            $entity.Properties.Keys | ForEach-Object {Add-Member -InputObject $entityNewObj -Name $_ -Value $entity.Properties[$_].PropertyAsObject -MemberType NoteProperty}
+            $entity.Properties.Keys | ForEach-Object { Add-Member -InputObject $entityNewObj -Name $_ -Value $entity.Properties[$_].PropertyAsObject -MemberType NoteProperty }
 
             # Adding table entity other attributes
             Add-Member -InputObject $entityNewObj -Name "PartitionKey" -Value $entity.PartitionKey -MemberType NoteProperty
@@ -230,10 +228,16 @@ function Get-AzStorageTableRowAll {
 
     # No filtering
 
-    $tableQuery = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.TableQuery,$assemblySN"
-    $result = $executeQuery.Invoke($table.CloudTable, $tableQuery)
-    #$table.CloudTable.ExecuteQuery($tableQuery)
-
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $tableQueryType = [System.Type]::GetType("$($cloudTableType.Namespace).TableQuery, $($cloudTableType.Assembly.FullName)")
+    $tableRequestOptionsType = [System.Type]::GetType("$($cloudTableType.Namespace).TableRequestOptions, $($cloudTableType.Assembly.FullName)")
+    $operationContextType = [System.Type]::GetType("$($cloudTableType.Namespace).OperationContext, $($cloudTableType.Assembly.FullName)")
+    $executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@($tableQueryType, $tableRequestOptionsType, $operationContextType), $null)
+    $tableQuery = New-Object $tableQueryType
+    $params = @((Invoke-Expression "[$($tableQueryType.FullName)]`$tableQuery"), [type]::Missing, [type]::Missing)
+    $result = $executeQuery.Invoke($cloudTable, $params)   
+    
     if (-not [string]::IsNullOrEmpty($result)) {
         return (Get-PSObjectFromEntity -entityList $result)
     }
@@ -268,17 +272,21 @@ function Get-AzStorageTableRowByPartitionKey {
 	
     # Filtering by Partition Key
 
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $tableQueryType = [System.Type]::GetType("$($cloudTableType.Namespace).TableQuery, $($cloudTableType.Assembly.FullName)")
+    $tableRequestOptionsType = [System.Type]::GetType("$($cloudTableType.Namespace).TableRequestOptions, $($cloudTableType.Assembly.FullName)")
+    $operationContextType = [System.Type]::GetType("$($cloudTableType.Namespace).OperationContext, $($cloudTableType.Assembly.FullName)")
+    $executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@($tableQueryType, $tableRequestOptionsType, $operationContextType), $null)
+    $tableQuery = New-Object $tableQueryType
 
-    $tableQuery = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.TableQuery,$assemblySN"
-
-    [string]$filter = `
-        [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition("PartitionKey", `
-            [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal, $partitionKey)
+    [string]$filter = Invoke-Expression "[$($tableQueryType.FullName)]::GenerateFilterCondition('PartitionKey','eq',`$partitionKey)"
 
     $tableQuery.FilterString = $filter
 
     #$result = $table.CloudTable.ExecuteQuery($tableQuery)
-    $result = $executeQuery.Invoke($table.CloudTable, $tableQuery)
+    $params = @((Invoke-Expression "[$($tableQueryType.FullName)]`$tableQuery"), [type]::Missing, [type]::Missing)
+    $result = $executeQuery.Invoke($cloudTable, $params)  
     if (-not [string]::IsNullOrEmpty($result)) {
         return (Get-PSObjectFromEntity -entityList $result)
     }
@@ -319,25 +327,23 @@ function Get-AzStorageTableRowByPartitionKeyRowKey {
     )
 	
     # Filtering by Partition Key and Row Key
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $tableQueryType = [System.Type]::GetType("$($cloudTableType.Namespace).TableQuery, $($cloudTableType.Assembly.FullName)")
+    $tableRequestOptionsType = [System.Type]::GetType("$($cloudTableType.Namespace).TableRequestOptions, $($cloudTableType.Assembly.FullName)")
+    $operationContextType = [System.Type]::GetType("$($cloudTableType.Namespace).OperationContext, $($cloudTableType.Assembly.FullName)")
+    $executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@($tableQueryType, $tableRequestOptionsType, $operationContextType), $null)
+    $tableQuery = New-Object $tableQueryType
 
-
-    $tableQuery = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.TableQuery,$assemblySN"
-
-    [string]$filter1 = `
-        [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition("PartitionKey", `
-            [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal, $partitionKey)
-
-    [string]$filter2 = `
-        [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition("RowKey", `
-            [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal, $rowKey)
-
-    [string]$filter = [Microsoft.WindowsAzure.Storage.Table.TableQuery]::CombineFilters($filter1, "and", $filter2)
-
+    [string]$filter1 = Invoke-Expression "[$($tableQueryType.FullName)]::GenerateFilterCondition('PartitionKey','eq',`$partitionKey)"
+    [string]$filter2 = Invoke-Expression "[$($tableQueryType.FullName)]::GenerateFilterCondition('RowKey','eq',`$rowKey)"
+    [string]$filter = Invoke-Expression "[$($tableQueryType.FullName)]::CombineFilters(`$filter1, 'and', `$filter2)"
 
     $tableQuery.FilterString = $filter
 
-    # $result = $table.CloudTable.ExecuteQuery($tableQuery)
-    $result = $executeQuery.Invoke($table.CloudTable, $tableQuery)
+    #$result = $table.CloudTable.ExecuteQuery($tableQuery)
+    $params = @((Invoke-Expression "[$($tableQueryType.FullName)]`$tableQuery"), [type]::Missing, [type]::Missing)
+    $result = $executeQuery.Invoke($cloudTable, $params)  
 
     if (-not [string]::IsNullOrEmpty($result)) {
         return (Get-PSObjectFromEntity -entityList $result)
@@ -385,25 +391,29 @@ function Get-AzStorageTableRowByColumnName {
         [validateSet("Equal", "GreaterThan", "GreaterThanOrEqual", "LessThan" , "LessThanOrEqual" , "NotEqual")]
         [string]$operator
     )
-	
-    # Filtering by Partition Key
 
-    $tableQuery = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.TableQuery,$assemblySN"
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $tableQueryType = [System.Type]::GetType("$($cloudTableType.Namespace).TableQuery, $($cloudTableType.Assembly.FullName)")
+    $tableRequestOptionsType = [System.Type]::GetType("$($cloudTableType.Namespace).TableRequestOptions, $($cloudTableType.Assembly.FullName)")
+    $operationContextType = [System.Type]::GetType("$($cloudTableType.Namespace).OperationContext, $($cloudTableType.Assembly.FullName)")
+    $queryComparisonsType = [System.Type]::GetType("$($cloudTableType.Namespace).QueryComparisons, $($cloudTableType.Assembly.FullName)")
+    $executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@($tableQueryType, $tableRequestOptionsType, $operationContextType), $null)
+    $tableQuery = New-Object $tableQueryType
+
+    [string]$operatorString = Invoke-Expression "[$($queryComparisonsType.FullName)]::$operator"
 
     if ($PSCmdlet.ParameterSetName -eq "byString") {
-        [string]$filter = `
-            [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition($columnName, [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::$operator, $value)
+        [string]$filter = Invoke-Expression "[$($tableQueryType.FullName)]::GenerateFilterCondition(`$columnName,`$operatorString, `$value)"
     }
 
     if ($PSCmdlet.ParameterSetName -eq "byGuid") {
-        [string]$filter = `
-            [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterConditionForGuid($columnName, [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::$operator, $guidValue)
+        [string]$filter = Invoke-Expression "[$($tableQueryType.FullName)]::GenerateFilterCondition(`$columnName,`$operatorString, `$guidValue)"       
     }
 
     $tableQuery.FilterString = $filter
-
-    #$result = $table.CloudTable.ExecuteQuery($tableQuery)
-    $result = $executeQuery.Invoke($table.CloudTable, $tableQuery)
+    $params = @((Invoke-Expression "[$($tableQueryType.FullName)]`$tableQuery"), [type]::Missing, [type]::Missing)
+    $result = $executeQuery.Invoke($cloudTable, $params)     
 
     if (-not [string]::IsNullOrEmpty($result)) {
         return (Get-PSObjectFromEntity -entityList $result)
@@ -442,14 +452,16 @@ function Get-AzStorageTableRowByCustomFilter {
         [string]$customFilter
     )
 	
-    # Filtering by Partition Key
-    $tableQuery = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.TableQuery,$assemblySN"
-
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $tableQueryType = [System.Type]::GetType("$($cloudTableType.Namespace).TableQuery, $($cloudTableType.Assembly.FullName)")
+    $tableRequestOptionsType = [System.Type]::GetType("$($cloudTableType.Namespace).TableRequestOptions, $($cloudTableType.Assembly.FullName)")
+    $operationContextType = [System.Type]::GetType("$($cloudTableType.Namespace).OperationContext, $($cloudTableType.Assembly.FullName)")
+    $executeQuery = $cloudTableType.GetMethod("ExecuteQuery", @('instance', 'public', 'nonpublic'), $null, [type[]]@($tableQueryType, $tableRequestOptionsType, $operationContextType), $null)
+    $tableQuery = New-Object $tableQueryType
     $tableQuery.FilterString = $customFilter
-
-    #$result = $table.CloudTable.ExecuteQuery($tableQuery)
-    $result = $executeQuery.Invoke($table.CloudTable, $tableQuery)
- 
+    $params = @((Invoke-Expression "[$($tableQueryType.FullName)]`$tableQuery"), [type]::Missing, [type]::Missing)
+    $result = $executeQuery.Invoke($cloudTable, $params)     
     if (-not [string]::IsNullOrEmpty($result)) {
         return (Get-PSObjectFromEntity -entityList $result)
     }
@@ -496,8 +508,12 @@ function Update-AzStorageTableRow {
         throw "Update operation can happen on only one entity at a time, not in a list/array of entities."
     }
 
-    $updatedEntity = New-Object -TypeName "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity,$assemblySN" -ArgumentList $entity.PartitionKey, $entity.RowKey
-	
+    $cloudTable = $table.CloudTable
+    $cloudTableType = $cloudTable.GetType()
+    $dynamicTableEntityType = [System.Type]::GetType("$($cloudTableType.Namespace).DynamicTableEntity, $($cloudTableType.Assembly.FullName)")
+    $tableOperationType = [System.Type]::GetType("$($cloudTableType.Namespace).TableOperation, $($cloudTableType.Assembly.FullName)")
+
+    $updatedEntity = New-Object  $dynamicTableEntityType  -ArgumentList $entity.PartitionKey, $entity.RowKey
     # Iterating over PS Object properties to add to the updated entity 
     foreach ($prop in $entity.psobject.Properties) {
         if (($prop.name -ne "PartitionKey") -and ($prop.name -ne "RowKey") -and ($prop.name -ne "Timestamp") -and ($prop.name -ne "Etag") -and ($prop.name -ne "TableTimestamp")) {
@@ -506,10 +522,9 @@ function Update-AzStorageTableRow {
     }
 
     $updatedEntity.ETag = $entity.Etag
-
     # Updating the dynamic table entity to the table
-    return ($table.CloudTable.ExecuteAsync((invoke-expression "[Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Replace(`$updatedEntity)")).GetAwaiter().GetResult())
-  
+    return ($table.CloudTable.ExecuteAsync((invoke-expression "[$($tableOperationType.AssemblyQualifiedName)]::Replace(`$updatedEntity)")).GetAwaiter().GetResult())
+    
 }
 
 function Remove-AzStorageTableRow {
@@ -582,11 +597,17 @@ function Remove-AzStorageTableRow {
             $rowKey = $entity.RowKey
         }
         
+        $cloudTable = $table.CloudTable
+        $cloudTableType = $cloudTable.GetType()
+        $dynamicTableEntityType = [System.Type]::GetType("$($cloudTableType.Namespace).DynamicTableEntity, $($cloudTableType.Assembly.FullName)")
+        $tableOperationType = [System.Type]::GetType("$($cloudTableType.Namespace).TableOperation, $($cloudTableType.Assembly.FullName)")
 
-        $entityToDelete = invoke-expression "[Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity,$assemblySN](`$table.CloudTable.ExecuteAsync([Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Retrieve(`$partitionKey,`$rowKey))).GetAwaiter().GetResult().Result"
+
+
+        $entityToDelete = invoke-expression "[$($dynamicTableEntityType.AssemblyQualifiedName)](`$table.CloudTable.ExecuteAsync([$($tableOperationType.AssemblyQualifiedName)]::Retrieve(`$partitionKey,`$rowKey))).GetAwaiter().GetResult().Result"
    
         if ($null -ne $entityToDelete ) {
-            $results += $table.CloudTable.ExecuteAsync((invoke-expression "[Microsoft.WindowsAzure.Storage.Table.TableOperation,$assemblySN]::Delete(`$entityToDelete)")).GetAwaiter().GetResult()
+            $results += $table.CloudTable.ExecuteAsync((invoke-expression "[$($tableOperationType.AssemblyQualifiedName)]::Delete(`$entityToDelete)")).GetAwaiter().GetResult()
         }
     }
 	

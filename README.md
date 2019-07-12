@@ -641,3 +641,11 @@ PS> Invoke-Pester
 ```
 
 ![Invoke-Pester](AzureRmStorageTable-Pester.gif)
+
+
+# How to publish your own the Module
+Download the code to your local and modify the logic based on your need.
+Run the comand below to publish the module
+Publish-Module -Path "C:\pub\Az.StorageTable" -NuGetApiKey "NuGetApiKey" 
+
+Please refer to (https://mcpmag.com/articles/2017/03/16/submit-module-to-the-powershell-gallery.aspx) for more details.
